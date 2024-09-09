@@ -146,21 +146,12 @@ class TokenManager:
         return base64.urlsafe_b64encode(m.digest()).decode().rstrip('=')
 
     def get_preauth_cookie(self):
-        # fakeopen已挂
-        # return requests.get('https://ai.fakeopen.com/auth/preauth').json().get('preauth_cookie')
-        if self.device_token:
-            rsp = requests.post(
-                'https://ios.chat.openai.com/backend-api/preauth_devicecheck',
-                json={
-                    "bundle_id": "com.openai.chat",
-                    "device_id": "62345678-042E-45C7-962F-AC725D0E7770",
-                    "device_token": self.device_token,
-                    "request_flag": True
-                },
-                proxies=self.proxy
-            )
-            if rsp.status_code == 200 and rsp.json().get('is_ok'):
-                return rsp.cookies.get('_preauth_devicecheck')
+        try:
+            rsp = requests.get('https://publicapi.closeai.biz/auth/preauth', proxies=self.proxy)
+            if rsp.status_code == 200:
+                return rsp.json().get('preauth_cookie')
+        except Exception as e:
+            print(f"Error occurred: {e}")
         raise Exception('抓取preauth_cookie失败')
 
     def generate_access_token(self):
