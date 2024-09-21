@@ -39,7 +39,8 @@ Options:
 
 ### preauth_cookie如何生成？
 
-1. 准备一台ios设备，想办法获取device token，device token是什么详见[官方文档](https://developer.apple.com/documentation/devicecheck/dcdevice/generatetoken(completionhandler:))，具体的获取方法看[这里](https://linux.do/t/topic/57756)
+1. 准备一台ios设备，想办法获取device token，device token是什么详见[官方文档](https://developer.apple.com/documentation/devicecheck/dcdevice/generatetoken(completionhandler:))，具体的获取方法看[这里](https://linux.do/t/topic/57756)。已越狱设备看这里[这里](https://github.com/penumbra-x/auth)。
+
 
 2. 准备一个能访问openai的代理，发起以下请求即可得到preauth_cookie（device_id可自行修改）,就cookie而言是1小时后过期
 

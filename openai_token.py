@@ -26,10 +26,12 @@ class TokenManager:
             self,
             refresh_token=None,
             device_token=None,
+            session_token=None,
             refresh_interval=60,
             storage_path='./token.json',
             proxy='http://127.0.0.1:10809',
     ):
+        self.session_token = session_token
         self.refresh_token = refresh_token
         self.device_token = device_token
         self.refresh_interval = refresh_interval
@@ -146,13 +148,32 @@ class TokenManager:
         return base64.urlsafe_b64encode(m.digest()).decode().rstrip('=')
 
     def get_preauth_cookie(self):
-        try:
-            rsp = requests.get('https://publicapi.closeai.biz/auth/preauth', proxies=self.proxy)
-            if rsp.status_code == 200:
-                return rsp.json().get('preauth_cookie')
-        except Exception as e:
-            print(f"Error occurred: {e}")
-        raise Exception('抓取preauth_cookie失败')
+        if self.device_token:
+            try:
+                rsp = requests.post(
+                    'https://ios.chat.openai.com/backend-api/preauth_devicecheck',
+                    json={
+                        "bundle_id": "com.openai.chat",
+                        "device_id": "62345678-042E-45C7-962F-AC725D0E7770",
+                        "device_token": self.device_token,
+                        "request_flag": True
+                    },
+                    proxies=self.proxy
+                )
+                if rsp.status_code == 200 and rsp.json().get('is_ok'):
+                    return rsp.cookies.get('_preauth_devicecheck')
+            except Exception as e:
+                print(f"Error occurred: {e}")
+            raise Exception('抓取preauth_cookie失败')
+
+        else:
+            try:
+                rsp = requests.get('https://publicapi.closeai.biz/auth/preauth', proxies=self.proxy)
+                if rsp.status_code == 200:
+                    return rsp.json().get('preauth_cookie')
+            except Exception as e:
+                print(f"Error occurred: {e}")
+            raise Exception('抓取preauth_cookie失败')
 
     def generate_access_token(self):
         self.ensure_refresh_token()
@@ -218,6 +239,31 @@ class TokenManager:
                 'access_token': self.access_token
             }, file, indent=2)
 
+    def is_plus(self):
+        response = requests.get(
+            'https://chat.oaifree.com/dad04481-fa3f-494e-b90c-b822128073e5/backend-api/models',
+            headers={'authorization': f'Bearer {self.get_access_token()}'},
+            proxies=self.proxy
+        )
+        if response.status_code == 200:
+            return True
+        else:
+            return False
+
+    def st_to_at(self):
+        url = "https://chatgpt.com/api/auth/session"
+
+        headers = {
+            "Accept": "*/*",
+            "cookie": f"__Secure-next-auth.session-token={self.session_token}",
+            "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36 Edg/121.0.0.0"
+        }
+        response = requests.get(url, headers=headers, proxies=self.proxy)
+
+        if response.status_code == 200:
+            return response.json().get("accessToken")
+        else:
+            return None
 
 @click.command()
 @click.option('--proxy', "-p", help='A http proxy str. (http://127.0.0.1:8080)', required=False)
